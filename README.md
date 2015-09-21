@@ -1,16 +1,16 @@
- # Daily Fantasy Sports (DFS) Optimization Tools
+# Daily Fantasy Sports (DFS) Optimization Tools
 
 DFS sites like FanDuel and DraftKings require you to pick a team lineup with N number of players with postion restrictions under a max salary cap. A sample list of players might look like the below:
 
- | Name     | POS | Pts | Salary |
- |----------|-----|-----|--------|
- | Player A |  A  | 8.0 | $9,300 |
- | Player B |  A  | 3.4 | $3,500 |
- | Player C |  B  | 6.7 | $6,400 |
- | Player D |  B  | 1.7 | $2,000 |
- | Player E |  C  | 4.7 | $5,100 |
- | Player F |  C  | 6.7 | $6,400 |
- | Player G |  C  | 4.4 | $4,300 |
+| Name     | POS | Pts | Salary |
+|----------|-----|-----|--------|
+| Player A |  A  | 8.0 | $9,300 |
+| Player B |  A  | 3.4 | $3,500 |
+| Player C |  B  | 6.7 | $6,400 |
+| Player D |  B  | 1.7 | $2,000 |
+| Player E |  C  | 4.7 | $5,100 |
+| Player F |  C  | 6.7 | $6,400 |
+| Player G |  C  | 4.4 | $4,300 |
 
 Max Salary: $20,000
 Position Requirements: 1 x A, 1 x B, 1 x C
