@@ -1,6 +1,6 @@
- Daily Fantasy Sports (DFS) Optimization Tools
+ # Daily Fantasy Sports (DFS) Optimization Tools
 
- DFS sites like FanDuel and DraftKings require you to pick a team lineup with N number of players with postion restrictions under a max salary cap. A sample list of players might look like the below:
+DFS sites like FanDuel and DraftKings require you to pick a team lineup with N number of players with postion restrictions under a max salary cap. A sample list of players might look like the below:
 
  | Name     | POS | Pts | Salary |
  |----------|-----|-----|--------|
@@ -11,22 +11,23 @@
  | Player E |  C  | 4.7 | $5,100 |
  | Player F |  C  | 6.7 | $6,400 |
  | Player G |  C  | 4.4 | $4,300 |
- Max Salary: $20,000
- Position Requirements: 1 x A, 1 x B, 1 x C
 
- Our goal is to maximize the total points for the lineup, while meeting the constraints of remaining under the salary cap and filling all the team positions. For the above scenario an optimal algorithm would chose: Player A, C, and G. Yielding a team, which costs exactly $20,000 and has a projected point value of 19.1.
+Max Salary: $20,000
+Position Requirements: 1 x A, 1 x B, 1 x C
 
- I aim to implement the below methods with Python and C, where efficiency and speed dictate.
+Our goal is to maximize the total points for the lineup, while meeting the constraints of remaining under the salary cap and filling all the team positions. For the above scenario an optimal algorithm would chose: Player A, C, and G. Yielding a team, which costs exactly $20,000 and has a projected point value of 19.1.
 
- ***Disclaimer:*** *I am not responsible for any financial loss caused by the use of these utilities. Maximizing projected points for a lineup is not the only factor, which should be considered when constructing a fantasy team.*
+I aim to implement the below methods with Python and C, where efficiency and speed dictate.
+
+***Disclaimer:*** *I am not responsible for any financial loss caused by the use of these utilities. Maximizing projected points for a lineup is not the only factor, which should be considered when constructing a fantasy team.*
 
 ## Methods
   * Random Generation
-    * Knapsack Problem
-      * Heuristic Approaches
-            * Genetic Algorithm
-                  * Hill CLimbing
-                    * Integer Linear Programming
+  * Knapsack Problem
+  * Heuristic Approaches
+      * Genetic Algorithm
+      * Hill CLimbing
+  * Integer Linear Programming
 
 ## Dependencies
 - Python 2.7+ Standard Library
@@ -49,7 +50,7 @@ $ git clone this repo
 >>> # Group players by position to help out our optimizer
 >>> players_by_pos = utils.groupby('position', players)
 >>>
->>> #
+>>> # Use a random optimizer to generate teams, this is very slow
 >>> teams = random_optimizer(players_by_pos, restrictions_mlb, 35000)
 >>> best = teams[0]
 >>> print best
