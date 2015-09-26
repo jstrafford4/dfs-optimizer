@@ -1,64 +1,111 @@
 import random
+import collections
 
 import utils
-from utils import Team, Player
 
 
-def generate_teams(players_by_pos, restrictions, salary_cap, drop=lambda t: False, n=500000, best=True, progress=True):
-    teams = [Team([])]
-    i = 1
-    while i < n:
-        if i % 100000 == 0 and progress:
-            if best:
-                print i, teams[0]
-            else:
-                print i
-        team = []
-        for pos, pos_players in players_by_pos.items():
-            team += random.sample(pos_players, restrictions[pos])
-        team = Team(team)
-        if team.salary <= salary_cap and not drop(team):
-            if best and team.fppg > teams[0].fppg:
-                teams = [team]
-                i += 1
-            elif not best:
-                teams += [team]
-                i += 1
-            else:
-                i += 1
-        elif best:
+class Optimizer(object):
+    def __init__(self, restrictions, player_fn, salary_cap, iterations=1500000, optimize_key='fppg', player_filter=None, ownership_fn=None, odds_fn=None):
+        self.restrictions = restrictions
+        self.player_fn = player_fn
+        self.ownership_fn = ownership_fn
+        self.odds_fn = odds_fn
+        self.player_filter = player_filter
+        self.salary_cap = salary_cap
+        self.iterations = iterations
+        self.player_filter = (lambda p: True) if player_filter is None else player_filter
+        self.optimize_key = optimize_key
+        self.players = []
+        self.load_players()
+        self.players_filtered = self.players
+        self.entries = []
+        self.odds = {}
+        if odds_fn is not None:
+            self.merge_odds_data()
+        if ownership_fn is not None:
+            self.merge_ownership_data()
+        self.players_by_pos = {}
+        self.add_players(self.players_filtered)
+        self.best = utils.Team([])
+        self.teams = []
+        self.player_counts = []
+
+    def add_players(self, players, player_filter=None):
+        self.players = sorted(players, key=lambda p:p.__dict__[self.optimize_key], reverse=True)
+        self.players_filtered = filter(self.player_filter if player_filter is None else player_filter, self.players)
+        self.players_by_pos = utils.groupby('position', self.players_filtered)
+        if len(self.players_by_pos) != len(self.restrictions):
+            raise Exception('[ERROR] Player list (players=%d) not sufficient to meet restrictions. Missing = %s.' % (len(players), [k for k in self.restrictions if k not in self.players_by_pos]))
+
+    def load_players(self):
+        self.players = utils.load_data(self.player_fn)
+
+    def merge_ownership_data(self):
+        self.entries = utils.merge_ownership_data(self.ownership_fn, self.players)
+        m = max(self.entries, key=lambda e: e.ownership)
+        f = max(self.entries, key=lambda e: e.fppg)
+        for e in self.entries:
+            e.ownership_scaled = e.ownership / float(m.ownership)
+            e.fppg_scaled = e.fppg / float(f.fppg)
+
+    def merge_odds_data(self):
+        with open(self.odds_fn, 'r') as f:
+            for line in f:
+                away, away_odds, home, home_odds = line.rstrip().split(',')
+                self.odds['%s@%s' % (away, home)] = (float(away_odds), float(home_odds))
+        for p in self.players:
+            p.odds = self.odds[p.game][p.home]
+            p.win_projected = self.odds[p.game][p.home] > self.odds[p.game][not p.home]
+
+
+    def optimize(self, iterations=None, optimize_key=None):
+        self.iterations = self.iterations if iterations is None else iterations
+        self.optimize_key = self.optimize_key if optimize_key is None else optimize_key
+        self.run()
+        self.count_players()
+
+    def ownership_coverage(self):
+        coverage = {}
+        for k, v in self.players_by_pos.items():
+            coverage[k] = 0
+            for p in v:
+                coverage[k] += p.ownership
+        return coverage, utils.mean(coverage.values())
+
+    def count_players(self):
+        counts = {}
+        for t in self.teams:
+            for p in t.players:
+                key = str(p)
+                counts[key] = (p, counts.setdefault(key, (p, 0))[1] + 1)
+        self.player_counts = sorted([(v[0], v[1]) for k,v in counts.items()], key=lambda p:p[1], reverse=True)
+
+    def run(self):
+        pass
+
+
+class RandomOptimizer(Optimizer):
+    def run(self):
+        self.teams = self.random_teams(self.players_by_pos, self.restrictions, self.salary_cap, key=self.optimize_key, n=self.iterations)
+        self.best = self.teams[0]
+
+    def random_teams(self, players_by_pos, restrictions, salary_cap, key='fppg', drop=lambda t: False, n=1000000, keep=400, progress=250000):
+        teams = collections.deque(maxlen=keep)
+        teams.append(utils.Team([]))
+        teams.append(utils.Team([]))
+        teams.append(utils.Team([]))
+        i = 1
+        while i <= n:
+            if i % progress == 0:
+                print i, teams[-1]
+            team = []
+            for pos, pos_players in players_by_pos.items():
+                team += random.sample(pos_players, restrictions[pos])
+            team = utils.Team(team)
+            if team.salary <= salary_cap and team.valid and not drop(team) and team.players_dict != teams[-1].players_dict:
+                if team.__dict__[key] >= teams[len(teams) / 2].__dict__[key] and team.winners_projected > 5:
+                    teams.append(team)
             i += 1
-    return sorted(teams, key=lambda t: t.fppg, reverse=True)
+        return sorted(teams, key=lambda t: t.__dict__[key], reverse=True)
 
 
-
-
-restrictions_mlb = {'P': 1, 'C': 1, '1B': 1, '2B': 1, '3B': 1, 'SS': 1, 'OF': 3}
-
-def filter_mlb(players):
-    results = []
-    for p in players:
-        if p.fppg < 1 or p.injury_indicator + p.injury_details != '':
-            continue
-        if p.position == 'P' and (p.probable_pitcher != 'Yes' or p.played < 10):
-            continue
-        if p.position != 'P' and (p.played < 35 or p.batting_order in ['', 0]):
-            continue
-        results += [p]
-    return results
-
-
-    
-    
-if __name__ == '__main__':
-    players = utils.load_data('data/FanDuel-MLB-2015-09-24-13099-players-list.csv')
-    print 'Unfiltered:', len(players)
-    players = filter_mlb(players)
-    print 'Filtered  :', len(players)
-    players_by_pos = utils.groupby('position', players)
-    teams = generate_teams(players_by_pos, restrictions_mlb, 35000, n=1500000)
-    print teams[0]
-    print teams[0].played_avg
-    for p in teams[0].players:
-        print p
-    
