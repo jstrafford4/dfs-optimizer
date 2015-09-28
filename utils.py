@@ -1,5 +1,5 @@
 import string
-
+from copy import copy, deepcopy
 
 class Player(object):
     def __init__(self, *args, **kwargs):
@@ -29,6 +29,7 @@ class Player(object):
             self.gametime = t + tz
             self.first_name = self.name.split(' ')[0]
             self.last_name  = ' '.join(self.name.split(' ')[1:])
+        self.name = self.first_name + ' ' + self.last_name
         self.home_team = self.game.split('@')[1]
         self.away_team = self.game.split('@')[0]
         self.home = self.home_team == self.team
@@ -36,7 +37,7 @@ class Player(object):
         self.win_projected = 0
 
     def __repr__(self):
-        return 'Player(%2s:%s %2.2f $%d %s %s Own:%2.2f t:%s Odds:%2.2f)' % (self.position, self.team, self.fppg, self.salary, self.first_name, self.last_name, self.ownership, self.gametime, self.odds)
+        return 'Player(%2s:%s %2.2f $%d %s Own:%2.2f t:%s Odds:%2.2f)' % (self.position, self.team, self.fppg, self.salary, self.name, self.ownership, self.gametime, self.odds)
 
 
 class Team(object):
@@ -58,16 +59,16 @@ class Team(object):
         self.players_dict = {}
         self.fppg_actual = 0.0
         self.odds = 0.0
+        self.hash = 0
         if players is not None:
             for p in players:
                 self.update(p)
 
     def update(self, p):
-        name = p.first_name + ' ' + p.last_name
-        if name in self.players_dict:
+        if p.name in self.players_dict:
             self.valid = False
-        self.players_dict[name] = 1
-        #self.hash += p.last_name
+        self.players_dict[p.name] = 1
+        self.hash += p.id
         self.composition.__setitem__(p.position, self.composition.setdefault(p.position, 0) + 1)
         if p.team not in self.teams:
             self.team_count += 1
@@ -105,6 +106,57 @@ class Entry(Team):
     def __repr__(self):
         return 'Entry(%s #%d Own:%2.2f $%d fppg:%2.2f) ' % (self.username, self.place, self.ownership, self.salary, self.fppg)
 
+class Centroid(object):
+    def __init__(self, teams):
+        self.teams = []
+        self.player_names = {}
+        self.team_names = {}
+        if type(teams) is not list:
+            teams = [teams]
+        for t in teams:
+            self.add_team(t)
+
+    def add_team(self, t):
+        self.teams += [t]
+        for p in t.players:
+            if p.name not in self.player_names:
+                self.player_names[p.name] = 0
+            self.player_names[p.name] += 1
+            if p.team not in self.team_names:
+                self.team_names[p.team] = 0
+            self.team_names[p.team] += 1
+
+    def get_distance(self, t):
+        d = 0
+        for p in t.players:
+            if p.name in self.player_names:
+                d -= 0
+            elif p.team in self.team_names:
+                d -= 1
+        return d
+
+    def __repr__(self):
+        return 'Centroid(Players:%d Teams:%d LU:%d)' % (len(self.player_names), len(self.team_names), len(self.teams))
+
+class KMeans(object):
+    def __init__(self, teams, centers=5):
+        teams_c = copy(teams)
+        self.centroids = [Centroid(teams_c[0])]
+        self.init_centroids(centers, teams_c)
+        self.assign_teams(teams_c)
+
+    def assign_teams(self, teams):
+        for t in teams:
+            self.centroids.sort(key=lambda c:c.get_distance(t))
+            self.centroids[0].add_team(t)
+
+    def init_centroids(self, centers, teams):
+        temp = Centroid(teams[0])
+        for i in xrange(centers - 1):
+            teams.sort(key=lambda t:temp.get_distance(t))
+            self.centroids += [Centroid(teams[-1])]
+            temp.add_team(teams[-1])
+            teams.pop(-1)
 
 def try_num(n):
     try:
@@ -198,6 +250,33 @@ def load_data(fn, header=None):
             else:
                 players += [Player(**kwargs)]
     return players
+
+def team_compare(a, b):
+    r = 0
+    for n in a.players_dict:
+        if n in b.players_dict:
+            r += 1
+    return r
+
+class TeamComparison(object):
+    def __init__(self, teams):
+        self.teams = teams
+        self.players_dict = {}
+        self.teams_dict = {}
+        for t in teams:
+            for p in t.players:
+                if p.name not in self.players_dict:
+                    self.players_dict[p.name] = 0
+                if p.team not in self.teams_dict:
+                    self.teams_dict[p.team] = 0
+                self.teams_dict[p.team] += 1
+                self.players_dict[p.name] += 1
+        self.most_used = max(self.players_dict.values())
+        self.diversity =  mean( [sum([team_compare(a, b) for b in teams if a.players_dict != b.players_dict]) for a in teams])
+
+    def __repr__(self):
+        return 'TeamCompare(Players:%d Max:%d Div:%2.2f)' % (len(self.players_dict), self.most_used, self.diversity)
+
 
 
 def calc_profit(winp=0.6,entries=20,fee=25,size=100,cut=0.1):

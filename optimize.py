@@ -98,14 +98,16 @@ class RandomOptimizer(Optimizer):
         while i <= n:
             if i % progress == 0:
                 print i, teams[-1]
+            i += 1
             team = []
             for pos, pos_players in players_by_pos.items():
                 team += random.sample(pos_players, restrictions[pos])
             team = utils.Team(team)
-            if team.salary <= salary_cap and team.valid and not drop(team) and team.players_dict != teams[-1].players_dict:
+            if team.hash == teams[-1].hash and team.players_dict == teams[-1].players_dict:
+                continue
+            if team.salary <= salary_cap and team.valid and not drop(team):
                 if team.__dict__[key] >= teams[len(teams) / 2].__dict__[key] and team.winners_projected > 5:
                     teams.append(team)
-            i += 1
         return sorted(teams, key=lambda t: t.__dict__[key], reverse=True)
 
 
