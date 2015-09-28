@@ -20,9 +20,11 @@ def filter_nhl(p, gametime=None, relax=True):
 def filter_mlb(p, gametime=None, relax=True):
     if p.fppg < 1 or p.injury_indicator + p.injury_details != '':
         return False
-    if p.position == 'P' and not relax and (p.probable_pitcher != 'Yes' or p.played < 10):
+    if p.position in ['SP', 'RP', 'P'] and p.probable_pitcher != 'Yes':
         return False
-    if p.position != 'P' and not relax and (p.played < 35 or p.batting_order in ['', 0]):
+    if p.position == ['SP', 'RP', 'P'] and not relax and p.played < 10:
+        return False
+    if p.position != ['SP', 'RP', 'P'] and not relax and (p.played < 35 or p.batting_order in ['', 0]):
         return False
     if gametime is not None and gametime not in p.gametime:
         return False
@@ -33,26 +35,26 @@ config = {
                        'composition': {'P':1, 'C':1, '1B':1, '2B':1, '3B':1, 'SS':1, 'OF':3},
                        'filter': filter_mlb
                       },
-               'NFL': {'salary': 60000,
+                    'NFL': {'salary': 60000,
                        'composition': {'QB': 1, 'RB': 2, 'WR': 3, 'TE':1, 'K':1, 'D':1},
                        'filter': filter_nfl
                       },
-               'NHL': {'salary': 55000,
+                     'NHL': {'salary': 55000,
                        'composition': {'LW': 2, 'RW': 2, 'C': 2, 'D': 2, 'G': 1},
                        'filter': filter_nhl
                       },
                },
-        'DraftKings': {'MLB': {'salary': 35000,
-                       'composition': {'P':2, 'C':1, '1B':1, '2B':1, '3B':1, 'SS':1, 'OF':3},
-                       'filter': filter_mlb
+        'DraftKings': {'MLB': {'salary': 50000,
+                         'composition': {'SP':2, 'C':1, '1B':1, '2B':1, '3B':1, 'SS':1, 'OF':3},
+                         'filter': filter_mlb
                       },
-               'NFL': {'salary': 60000,
-                       'composition': {'QB': 1, 'RB': 2, 'WR': 3, 'TE':1, 'K':1, 'D':1},
-                       'filter': filter_nfl
+                       'NFL': {'salary': 60000,
+                         'composition': {'QB': 1, 'RB': 2, 'WR': 3, 'TE':1, 'K':1, 'D':1},
+                         'filter': filter_nfl
                       },
-               'NHL': {'salary': 55000,
-                       'composition': {'LW': 2, 'RW': 2, 'C': 2, 'D': 2, 'G': 1},
-                       'filter': filter_nhl
+                       'NHL': {'salary': 55000,
+                         'composition': {'LW': 2, 'RW': 2, 'C': 2, 'D': 2, 'G': 1},
+                         'filter': filter_nhl
                       },
                }
          }

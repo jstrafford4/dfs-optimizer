@@ -1,8 +1,11 @@
 import string
 from copy import copy, deepcopy
+import random
+
 
 class Player(object):
     def __init__(self, *args, **kwargs):
+        self.id = random.randint(1000000, 9999999)
         self.args = args
         self.ownership = 0.0
         self.fppg_actual = 0.0
@@ -29,6 +32,8 @@ class Player(object):
             self.gametime = t + tz
             self.first_name = self.name.split(' ')[0]
             self.last_name  = ' '.join(self.name.split(' ')[1:])
+        self.team = self.team.upper()
+        self.game = self.game.upper()
         self.name = self.first_name + ' ' + self.last_name
         self.home_team = self.game.split('@')[1]
         self.away_team = self.game.split('@')[0]

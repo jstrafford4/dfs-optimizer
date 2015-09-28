@@ -34,7 +34,7 @@ class Optimizer(object):
         self.players = sorted(players, key=lambda p:p.__dict__[self.optimize_key], reverse=True)
         self.players_filtered = filter(self.player_filter if player_filter is None else player_filter, self.players)
         self.players_by_pos = utils.groupby('position', self.players_filtered)
-        if len(self.players_by_pos) != len(self.restrictions):
+        if not all(k in self.players_by_pos for k in self.restrictions.keys()):
             raise Exception('[ERROR] Player list (players=%d) not sufficient to meet restrictions. Missing = %s.' % (len(players), [k for k in self.restrictions if k not in self.players_by_pos]))
 
     def load_players(self):
@@ -80,28 +80,31 @@ class Optimizer(object):
                 counts[key] = (p, counts.setdefault(key, (p, 0))[1] + 1)
         self.player_counts = sorted([(v[0], v[1]) for k,v in counts.items()], key=lambda p:p[1], reverse=True)
 
+    def sort_teams(self, key):
+        self.teams.sort(key=lambda t: t.__dict__[key], reverse=True)
+        self.best = self.teams[0]
+
     def run(self):
         pass
 
 
 class RandomOptimizer(Optimizer):
     def run(self):
-        self.teams = self.random_teams(self.players_by_pos, self.restrictions, self.salary_cap, key=self.optimize_key, n=self.iterations)
+        self.teams = self.random_teams(self.players_by_pos, self.restrictions, self.salary_cap, key=self.optimize_key, iterations=self.iterations)
         self.best = self.teams[0]
 
-    def random_teams(self, players_by_pos, restrictions, salary_cap, key='fppg', drop=lambda t: False, n=1000000, keep=400, progress=250000):
+    def random_teams(self, players_by_pos, restrictions, salary_cap, key='fppg', drop=lambda t: False, iterations=1000000, keep=400, progress=250000):
         teams = collections.deque(maxlen=keep)
         teams.append(utils.Team([]))
         teams.append(utils.Team([]))
-        teams.append(utils.Team([]))
         i = 1
-        while i <= n:
+        while i <= iterations:
             if i % progress == 0:
                 print i, teams[-1]
             i += 1
             team = []
-            for pos, pos_players in players_by_pos.items():
-                team += random.sample(pos_players, restrictions[pos])
+            for pos, n in restrictions.items():
+                team += random.sample(players_by_pos[pos], n)
             team = utils.Team(team)
             if team.hash == teams[-1].hash and team.players_dict == teams[-1].players_dict:
                 continue
