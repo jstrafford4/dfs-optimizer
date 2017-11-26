@@ -30,10 +30,18 @@ class Optimizer(object):
         self.teams = []
         self.player_counts = []
 
+    
+    # sets self.players to sorted list by optimize_key,
+    # self.players_filtered to players minus the junk
+    # probably most important, self.players_by_pos to object with position keys, sorted by optimize_key
     def add_players(self, players, player_filter=None):
+        # returns a new list in descending order by player[self.optimize_key]
         self.players = sorted(players, key=lambda p:p.__dict__[self.optimize_key], reverse=True)
+        # filter out unwanted players based on function argument if provided, else class player filter
         self.players_filtered = filter(self.player_filter if player_filter is None else player_filter, self.players)
+        # returns object with keys for each position, values a list of players at that position
         self.players_by_pos = utils.groupby('position', self.players_filtered)
+        # checks that we have players in the pool for each position required
         if not all(k in self.players_by_pos for k in self.restrictions.keys()):
             raise Exception('[ERROR] Player list (players=%d) not sufficient to meet restrictions. Missing = %s.' % (len(players), [k for k in self.restrictions if k not in self.players_by_pos]))
 
@@ -47,6 +55,7 @@ class Optimizer(object):
         for e in self.entries:
             e.ownership_scaled = e.ownership / float(m.ownership)
             e.fppg_scaled = e.fppg / float(f.fppg)
+
 
     def merge_odds_data(self):
         with open(self.odds_fn, 'r') as f:
@@ -64,6 +73,7 @@ class Optimizer(object):
         self.run()
         self.count_players()
 
+    
     def ownership_coverage(self):
         coverage = {}
         for k, v in self.players_by_pos.items():

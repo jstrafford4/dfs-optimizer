@@ -20,6 +20,7 @@ class Player(object):
         self.injury_indicator = ''
         self.injury_details = ''
         self.probable_pitcher = ''
+        self.salary = 0
         self.played = 0
         self.batting_order = 0
         for k, v in kwargs.items():
@@ -143,13 +144,18 @@ class Centroid(object):
     def __repr__(self):
         return 'Centroid(Players:%d Teams:%d LU:%d)' % (len(self.player_names), len(self.team_names), len(self.teams))
 
+
 class KMeans(object):
+    # so we start with the first team, centroid 1.  take the furthest team, centroid 2.  then keep picking the most remote team and make that a centroid, then assign.
+    # likely can be improved with iterating until no more improvements.
+    
     def __init__(self, teams, centers=5):
         teams_c = copy(teams)
         self.centroids = [Centroid(teams_c[0])]
         self.init_centroids(centers, teams_c)
         self.assign_teams(teams_c)
 
+    
     def assign_teams(self, teams):
         for t in teams:
             self.centroids.sort(key=lambda c:c.get_distance(t))
@@ -159,7 +165,9 @@ class KMeans(object):
         temp = Centroid(teams[0])
         for i in xrange(centers - 1):
             teams.sort(key=lambda t:temp.get_distance(t))
+            # append a centroid made out of the furthest team from first team
             self.centroids += [Centroid(teams[-1])]
+            # is this.. an error? or is it to make sure the next centroid is furthest from growing list of centroids.  yeah.  that's it.
             temp.add_team(teams[-1])
             teams.pop(-1)
 
